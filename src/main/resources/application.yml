@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:tcp://localhost/~/jpashop
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+
+  jpa:
+    hibernate:
+      ddl-auto: create #이 옵션은 애플리케이션 실행 시점에서 다시 생성?
+    properties:
+      hibernate:
+        #        show_sql: true sysout으로 출력된다.
+        format_sql: true
+
+#  security:
+#    user:
+#      name: "hi"
+#      password: 123
+#      roles: "member"
+
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
