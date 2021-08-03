@@ -1,9 +1,6 @@
 package jpabook.jpashop.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -14,7 +11,7 @@ import java.util.List;
 @Getter
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Orders {
 
     @Id
@@ -22,15 +19,15 @@ public class Orders {
     @Column(name = "ORDER_ID")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MEMBER_ID")
     private Member member;
 
-    @OneToMany(mappedBy = "order")
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "DELIVERY_ID")
     private Delivery delivery;
 
@@ -39,16 +36,72 @@ public class Orders {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
+    //--------연관관계 메서드--------//
+    public void setMember(Member member) {
+        this.member = member;
+        member.getOrders().add(this);
+        //양방향 연관관계
+    }
+
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
+
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
+        delivery.setOrders(this);
+    }
+
+    //=========생성메서드=========//
+    public static Orders createOrder(Member member, Delivery delivery, OrderItem... orderItems) {
+        Orders order = new Orders();
+        order.setMember(member);
+        order.setDelivery(delivery);
+        for (OrderItem orderItem : orderItems) {
+            order.getOrderItems().add(orderItem);
+        }
+        order.setStatus(OrderStatus.ORDER);
+        order.setOrderDate(LocalDateTime.now());
+        return order;
+    }
+
+    //=======비즈니스 로직========//
+
+    /**
+     * 주문취소
+     * @return
+     */
+    public void cancel() {
+        if (delivery.getStatus() == DeliveryStatus.COMP) {
+            throw new IllegalStateException("이미 배송이 완료된 상품입니다");
+        }
+        this.setStatus(OrderStatus.CANCEL);
+        for (OrderItem orderItem : orderItems) {
+            orderItem.cancel();
+        }
+    }
+
+    //========조회 로직 ======//
+
+    /**
+     * 전체 주문가격 조회
+     * @return
+     */
+    public int getTotalPrice() {
+        int totalPrice=0;
+        for (OrderItem orderItem : orderItems) {
+            totalPrice += orderItem.getTotalPrice();
+        }//스트림 공부하자 ... maptoint...
+        return totalPrice;
+    }
+
 
 
 
 
     public Member getMember() {
         return member;
-    }
-
-    public void setMember(Member member) {
-        this.member = member;
     }
 
     public List<OrderItem> getOrderItems() {
@@ -63,9 +116,6 @@ public class Orders {
         return delivery;
     }
 
-    public void setDelivery(Delivery delivery) {
-        this.delivery = delivery;
-    }
 
     public LocalDateTime getOrderDate() {
         return orderDate;
